@@ -3,6 +3,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QPushButton, QComboBox, QLineEdit,
                              QLabel, QFileDialog, QGroupBox, QMessageBox)
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QImage, QPixmap
+import numpy as np
 
 from script import ImageProcessor
 
@@ -90,6 +92,9 @@ class ImageScramblerGUI(QMainWindow):
     # 1 obraz
     def load_image(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Wybierz obraz", "", "Image Files (*.png *.jpg *.jpeg *.bmp)")
+        if file_name:
+            if self.processor.load_image(file_name):
+                self.display_image(self.processor.original_image, self.lbl_original)
 
     # 2 obraz
     def scramble(self):
@@ -109,6 +114,34 @@ class ImageScramblerGUI(QMainWindow):
             QMessageBox.warning(self, "Błąd", "Wprowadź klucz")
             return
 
+    def display_image(self, img_array, label):
+        # Konwertuje tablicę NumPy na QPixmap
+        if img_array is None:
+            return
+
+        height, width, channels = img_array.shape
+        bytes_per_line = channels * width
+        
+        # Konwersja NumPy array (RGB) na QImage
+        q_img = QImage(img_array.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
+        
+        # Konwersja na QPixmap i skalowanie, aby obraz zachował proporcje
+        pixmap = QPixmap.fromImage(q_img)
+        
+        # Pobieramy wymiary kontenera (etykiety)
+        label_width = label.width()
+        label_height = label.height()
+        
+        if label_width > 0 and label_height > 0:
+            scaled_pixmap = pixmap.scaled(label_width, label_height, 
+                                          Qt.AspectRatioMode.KeepAspectRatio, 
+                                          Qt.TransformationMode.SmoothTransformation)
+            label.setPixmap(scaled_pixmap)
+        else:
+            label.setPixmap(pixmap)
+            
+        label.setText("")
+    
     # Random key
     def random_key(self):
         # Pobieramy losowy klucz z warstwy logiki
