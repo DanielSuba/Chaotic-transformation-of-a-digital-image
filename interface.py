@@ -91,10 +91,13 @@ class ImageScramblerGUI(QMainWindow):
     # ---------------- Metody dla komunikacji ze skryptem ----------------
     # 1 obraz
     def load_image(self):
-        file_name, _ = QFileDialog.getOpenFileName(self, "Wybierz obraz", "", "Image Files (*.png *.jpg *.jpeg *.bmp)")
+        file_name, _ = QFileDialog.getOpenFileName(self, "Choose image", "", "Image Files (*.png *.jpg *.jpeg *.bmp)")
         if file_name:
             if self.processor.load_image(file_name):
                 self.display_image(self.processor.original_image, self.lbl_original)
+                # Reset sąsiednich ekranów
+                self.lbl_scrambled.clear()
+                self.lbl_recovered.clear()
 
     # 2 obraz
     def scramble(self):
@@ -102,8 +105,17 @@ class ImageScramblerGUI(QMainWindow):
         key = self.input_key.text()
         
         if not key:
-            QMessageBox.warning(self, "Błąd", "Wprowadź klucz")
+            QMessageBox.warning(self, "Error", "Write key")
             return
+        
+        if self.processor.original_image is None:
+            QMessageBox.warning(self, "Error", "Upload image first!")
+            return
+
+        if self.processor.scramble(stage, key):
+            self.display_image(self.processor.scrambled_image, self.lbl_scrambled)
+        else:
+            QMessageBox.critical(self, "Error", "Check key format!")
 
     # 3 obraz
     def unscramble(self):
@@ -111,8 +123,17 @@ class ImageScramblerGUI(QMainWindow):
         key = self.input_key.text()
         
         if not key:
-            QMessageBox.warning(self, "Błąd", "Wprowadź klucz")
+            QMessageBox.warning(self, "Error", "Write key")
             return
+        
+        if self.processor.scrambled_image is None:
+            QMessageBox.warning(self, "Error", "No image to unscramble!")
+            return
+
+        if self.processor.unscramble(stage, key):
+            self.display_image(self.processor.unscrambled_image, self.lbl_recovered)
+        else:
+            QMessageBox.critical(self, "Error", "Not original key!")
 
     def display_image(self, img_array, label):
         # Konwertuje tablicę NumPy na QPixmap
@@ -144,7 +165,7 @@ class ImageScramblerGUI(QMainWindow):
     
     # Random key
     def random_key(self):
-        # Pobieramy losowy klucz z warstwy logiki
+        # Pobieramy losowy klucz z warstwy logiki i etapu
         stage = self.combo_stage.currentIndex() + 1
         new_key = self.processor.generate_random_key(stage)
         self.input_key.setText(new_key)
