@@ -73,10 +73,14 @@ class ImageProcessor:
             return False
     
     # UnScramble
-    def unscramble(self, stage, key):
+    def unscramble(self, stage, key, source="scrambled"):
         if self.scrambled_image is None:
             return False
             
+        target_image = self.original_image if source == "original" else self.scrambled_image
+        if target_image is None:
+            return False
+        
         try:
             if stage == 1:        # Unscramble dla etapu 1 w odwrotną stronę
                 axis, shift = self.stage1_key(key)
