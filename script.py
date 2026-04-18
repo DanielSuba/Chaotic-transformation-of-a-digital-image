@@ -38,21 +38,6 @@ class ImageProcessor:
             # Generuje losowy 16-znakowy klucz HEX
             return "".join(random.choices("0123456789ABCDEF", k=16))
     
-    # Metoda sprawdzenia i do rozkodowania Etapu 1
-    def stage1_key(self, key):
-        # Sprawdza czy format jest prawidlowy
-        match = re.match(r'^([+-])([RCrc])(\d+)$', key.strip())
-        if not match:
-            raise ValueError("Zły format klucza! Użyj np. +R50 lub -C100")
-        
-        sign = 1 if match.group(1) == '+' else -1
-        # Jezeli R to wiersze przemieszczają się w po X kord
-        # Jezeli C to kolumny przemieszczają się w po Y kord
-        axis = 1 if match.group(2).upper() == 'R' else 0
-        shift = int(match.group(3)) * sign
-
-        return axis, shift
-
     # Scramble
     def scramble(self, stage, key):
         # Jezeli niema obrazu
@@ -85,19 +70,96 @@ class ImageProcessor:
             if stage == 1:        # Unscramble dla etapu 1 w odwrotną stronę
                 axis, shift = self.stage1_key(key)
                 self.unscrambled_image = np.roll(self.scrambled_image, -shift, axis=axis)
+            elif stage == 2:      # Unscramble dla etapu 2
+                seed = self.seed_from_key(key)
+                h, w, c = target_image.shape
+                n = h * w     # Ilosc
+                
+                # Spłaszczamy obraz docelowy
+                flat_img = target_image.reshape((n, c))
+                
+                # Odtwarzamy ten sam wektor przesunięć
+                p = self.fisher_yates_permutation(n, seed)
+                
+                # Tworzymy puste canvas na odszyfrowane piksele
+                unscrambled_flat = np.zeros_like(flat_img)
+                
+                # Umieszczamy piksele na ich oryginalnych indeksach p (Permutacja)
+                unscrambled_flat[p] = flat_img
+                
+                # Zwijamy obraz z powrotem do 2D
+                self.unscrambled_image = unscrambled_flat.reshape((h, w, c))
+
             return True
         except Exception as e:
             print(f"Błąd odszyfrowania: {e}")
             return False
 
     # !!!!!!!!!!!!!!!!!!!! Etapy !!!!!!!!!!!!!!!!!!!!
+    # ---------------------------- Stage 1 ------------------------------
     def stage_1(self, key):
         axis, shift = self.stage1_key(key)
         # np.roll przesuwa przez calą tablice o podanych parametrach
         self.scrambled_image = np.roll(self.original_image, shift, axis=axis)
+    
+    # Metoda sprawdzenia i do rozkodowania Etapu 1
+    def stage1_key(self, key):
+        # Sprawdza czy format jest prawidlowy
+        match = re.match(r'^([+-])([RCrc])(\d+)$', key.strip())
+        if not match:
+            raise ValueError("Zły format klucza! Użyj np. +R50 lub -C100")
+        
+        sign = 1 if match.group(1) == '+' else -1
+        # Jezeli R to wiersze przemieszczają się w po X kord
+        # Jezeli C to kolumny przemieszczają się w po Y kord
+        axis = 1 if match.group(2).upper() == 'R' else 0
+        shift = int(match.group(3)) * sign
 
+        return axis, shift
+
+    # ---------------------------- Stage 2 ------------------------------
     def stage_2(self, key):
-        pass
+        seed = self.seed_from_key(key)
+        
+        # Pobieramy wysokość(h), szerokość(w) i ilość kanałów koloru (c)
+        h, w, c = self.original_image.shape
+        n = h * w # Całkowita ilość pikseli
+        
+        # Każdy piksel staje się osobnym elementem w jednej długiej liście
+        flat_img = self.original_image.reshape((n, c))
+        
+        # Generujemy wymieszaną tablicę indeksów z kluczem(seed)
+        p = self.fisher_yates_permutation(n, seed)
+        
+        # Nakładamy wymieszane indeksy na canvas obrazu
+        scrambled_flat = flat_img[p]
+        
+        # Formujemy z powrotem prostokąt i przypisujemy do zmiennej
+        self.scrambled_image = scrambled_flat.reshape((h, w, c))
 
+    # Zamienia klucza (string) na int
+    def seed_from_key(self, key):
+        try:
+            # Próbuje potraktować klucz jako system szesnastkowy
+            return int(key, 16) % (2**32)
+        except ValueError:
+            # Inaczej zamienia go na liczbę przez hashowanie
+            return abs(hash(key)) % (2**32)
+
+    # Generuje tablicę wymieszanych indeksów za pomocą algorytmu Fisher Yates
+    def fisher_yates_permutation(self, n, seed):
+        random.seed(seed)
+        
+        # Tworzymy tablice indeksów
+        p = np.arange(n)
+        
+        # Algorytm Fisher-Yates
+        for i in range(n - 1, 0, -1):
+            j = random.randint(0, i)
+            p[i], p[j] = p[j], p[i]
+            
+        return p
+
+    # ---------------------------- Stage 3 ------------------------------
     def stage_3(self, key):
         pass
