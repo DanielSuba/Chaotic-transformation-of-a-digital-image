@@ -145,7 +145,8 @@ class ImageScramblerGUI(QMainWindow):
     # Random key
     def random_key(self):
         # Pobieramy losowy klucz z warstwy logiki
-        new_key = self.processor.generate_random_key()
+        stage = self.combo_stage.currentIndex() + 1
+        new_key = self.processor.generate_random_key(stage)
         self.input_key.setText(new_key)
 
 app = QApplication(sys.argv)

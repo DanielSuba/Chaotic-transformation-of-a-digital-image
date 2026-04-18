@@ -26,9 +26,16 @@ class ImageProcessor:
             return False
 
     # Random Key
-    def generate_random_key(self):
-        """Generuje losowy 16-znakowy klucz HEX."""
-        return "".join(random.choices("0123456789ABCDEF", k=16))
+    def generate_random_key(self, stage):
+        if stage == 1:
+            # Losuje +, - oraz C, R i przesunięcie od 10 do 300 pikseli
+            sign = random.choice(['+', '-'])
+            axis = random.choice(['R', 'C'])
+            shift = random.randint(10, 300)
+            return f"{sign}{axis}{shift}"
+        else:
+            # Generuje losowy 16-znakowy klucz HEX
+            return "".join(random.choices("0123456789ABCDEF", k=16))
     
     # Scramble
     def scramble(self, stage, key):
