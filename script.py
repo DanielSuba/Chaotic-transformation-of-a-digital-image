@@ -59,9 +59,7 @@ class ImageProcessor:
     
     # UnScramble
     def unscramble(self, stage, key, source="scrambled"):
-        if self.scrambled_image is None:
-            return False
-            
+        # Wybor
         target_image = self.original_image if source == "original" else self.scrambled_image
         if target_image is None:
             return False
@@ -69,7 +67,7 @@ class ImageProcessor:
         try:
             if stage == 1:        # Unscramble dla etapu 1 w odwrotną stronę
                 axis, shift = self.stage1_key(key)
-                self.unscrambled_image = np.roll(self.scrambled_image, -shift, axis=axis)
+                self.unscrambled_image = np.roll(target_image, -shift, axis=axis)
             elif stage == 2 or stage == 3:      # Unscramble dla etapu 2
                 seed = self.seed_from_key(key)
 
