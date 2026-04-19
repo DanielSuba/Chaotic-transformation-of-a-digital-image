@@ -70,8 +70,27 @@ class ImageProcessor:
             if stage == 1:        # Unscramble dla etapu 1 w odwrotną stronę
                 axis, shift = self.stage1_key(key)
                 self.unscrambled_image = np.roll(self.scrambled_image, -shift, axis=axis)
-            elif stage == 2:      # Unscramble dla etapu 2
+            elif stage == 2 or stage == 3:      # Unscramble dla etapu 2
                 seed = self.seed_from_key(key)
+
+                # Zdjecie maski dla etapu 3
+                if stage == 3:
+                    # Ustawiamy seed
+                    rng = np.random.default_rng(seed)
+
+                    # Generujemy maskę o wymiarach przetasowanego obrazu
+                    noise = rng.integers(0, 256, size=target_image.shape, dtype=np.int16)
+
+                    # Mieniamy kod obrazu zgodnie z int16 (16 bitow), uniknąc limita 255 w kodzie kolorow
+                    img_int = target_image.astype(np.int16)
+
+                    # Odejmujemy maskę i robimy mod 256 zeby otrzymac kody kolorow
+                    unscrambled = (img_int - noise) % 256
+
+                    # Ustawiamy obraz
+                    target_image = unscrambled.astype(np.uint8)
+
+                # Dzialanie etapu 2 (Fisher-Yates)
                 h, w, c = target_image.shape
                 n = h * w     # Ilosc
                 
@@ -123,7 +142,7 @@ class ImageProcessor:
         
         # Pobieramy wysokość(h), szerokość(w) i ilość kanałów koloru (c)
         h, w, c = self.original_image.shape
-        n = h * w # Całkowita ilość pikseli
+        n = h * w # Całkowita ilość pikseli na siatce
         
         # Każdy piksel staje się osobnym elementem w jednej długiej liście
         flat_img = self.original_image.reshape((n, c))
@@ -162,4 +181,21 @@ class ImageProcessor:
 
     # ---------------------------- Stage 3 ------------------------------
     def stage_3(self, key):
-        pass
+        # Dzialanie stadzu 2
+        self.stage_2(key)
+
+        seed = self.seed_from_key(key)
+        # Tworzymy generator losowy na podstawie klucza
+        rng = np.random.default_rng(seed)
+        
+        # Generujemy tablicę losowych wartości od 0 do 255 dla każdego piksela na 3 kanały RGB
+        noise = rng.integers(0, 256, size=self.scrambled_image.shape, dtype=np.int16)
+
+        # Rzutujemy oryginalny obraz na int16
+        img_int = self.scrambled_image.astype(np.int16)
+        
+        # SZYFROWANIE
+        scrambled = (img_int + noise) % 256
+        
+        # Zamiana na standardowy format pikseli
+        self.scrambled_image = scrambled.astype(np.uint8)
