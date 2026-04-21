@@ -6,7 +6,10 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage, QPixmap
 import numpy as np
 
+# script.py
 from script import ImageProcessor
+# interfaceINFO.py
+from interfaceINFO import InfoWindow
 
 class ImageScramblerGUI(QMainWindow):
     def __init__(self):
@@ -48,6 +51,10 @@ class ImageScramblerGUI(QMainWindow):
         self.btn_download = QPushButton("Download image")
         self.btn_download.clicked.connect(self.download_image)
         top_panel.addWidget(self.btn_download)
+
+        self.btn_info = QPushButton("Show information")
+        self.btn_info.clicked.connect(self.show_information)
+        top_panel.addWidget(self.btn_info)
 
         self.btn_reset = QPushButton("Reset")
         self.btn_reset.clicked.connect(self.reset_ui)
@@ -224,7 +231,7 @@ class ImageScramblerGUI(QMainWindow):
     
     # Resetowanie programu
     def reset_ui(self):
-        """Czyści obrazy w interfejsie, dane w procesorze oraz pole klucza."""
+        # Czyści obrazy w interfejsie
         self.lbl_original.clear()
         self.lbl_original.setText("Imageless")
         self.lbl_scrambled.clear()
@@ -238,8 +245,18 @@ class ImageScramblerGUI(QMainWindow):
         self.processor.original_image = None
         self.processor.scrambled_image = None
         self.processor.unscrambled_image = None
-        print("[System] Interfejs i dane zostały zresetowane.")
+        print("Reset acquired")
     
+    # Informacja
+    def show_information(self):
+        stage = self.combo_stage.currentIndex() + 1
+        key = self.input_key.text()
+        
+        # Tworzymy instancję nowego okna i przekazujemy nasze dane
+        # self jako parent sprawia, że nowe okno wyśrodkuje się na głównym oknie
+        self.info_window = InfoWindow(self.processor, stage, key, parent=self)
+        self.info_window.exec() # .exec() blokuje okno główne
+
     # Random key
     def random_key(self):
         # Pobieramy losowy klucz z warstwy logiki i etapu
