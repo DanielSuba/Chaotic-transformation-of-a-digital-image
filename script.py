@@ -66,8 +66,7 @@ class ImageProcessor:
         
         try:
             if stage == 1:        # Unscramble dla etapu 1 w odwrotną stronę
-                axis, shift = self.stage1_key(key)
-                self.unscrambled_image = np.roll(target_image, -shift, axis=axis)
+                self.unscrambled_image = self.stage_1_work(target_image, key, reverse=True)
             elif stage == 2 or stage == 3:      # Unscramble dla etapu 2
                 seed = self.seed_from_key(key)
 
@@ -115,10 +114,54 @@ class ImageProcessor:
     # !!!!!!!!!!!!!!!!!!!! Etapy !!!!!!!!!!!!!!!!!!!!
     # ---------------------------- Stage 1 ------------------------------
     def stage_1(self, key):
-        axis, shift = self.stage1_key(key)
-        # np.roll przesuwa przez calą tablice o podanych parametrach
-        self.scrambled_image = np.roll(self.original_image, shift, axis=axis)
+        self.scrambled_image = self.stage_1_work(self.original_image, key, reverse=False)
     
+    def stage_1_work(self, image, key, reverse=False):
+        axis, shift = self.stage1_key(key)
+        if shift == 0:
+            return image.copy()
+
+        img = image.copy()
+        h, w = img.shape[:2]
+        
+        # Otrzymanie dlugosci N
+        N = abs(shift)
+        sign = 1 if shift > 0 else -1
+        
+        # Ustalenie wymiaru do podziału (wysokość dla R, szerokość dla C)
+        length = h if axis == 1 else w
+        
+        # Zabezpieczenie N 
+        N = min(N, length) 
+        
+        # Wyliczamy długość pojedynczego sektora
+        sector_N = length // N
+        
+        for i in range(N):
+            # Ustalanie początku i końca sektora
+            start = i * sector_N
+            # Jeśli to jest ostatni sektor, bierzemy wszystkie piksele do samego końca
+            if i == N - 1:
+                end = length
+            # Else kończymy sektor normalnie
+            else:
+                end = (i + 1) * sector_N
+            
+            # Wyliczamy przesunięcie dla tego sektora
+            shift2 = (abs(shift) - i) * sign
+            
+            # Odwrócenie kierunku, jeśli używamy tego do metody unscramble
+            if reverse:
+                shift2 = -shift2
+                
+            # Wykonujemy przesunięcie tylko dla konkretnego sektora obrazu
+            if axis == 1: # Wiersze przemieszczają się po osi X
+                img[start:end, :] = np.roll(img[start:end, :], shift2, axis=1)
+            else:         # Kolumny przemieszczają się po osi Y
+                img[:, start:end] = np.roll(img[:, start:end], shift2, axis=0)
+                
+        return img
+
     # Metoda sprawdzenia i do rozkodowania Etapu 1
     def stage1_key(self, key):
         # Sprawdza czy format jest prawidlowy
