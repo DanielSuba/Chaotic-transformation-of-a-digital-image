@@ -124,12 +124,18 @@ class ImageProcessor:
         img = image.copy()
         h, w = img.shape[:2]
         
-        # Otrzymanie dlugosci N
+        # Otrzymanie dlugosci N (ilosci sektrorow)
         N = abs(shift)
-        sign = 1 if shift > 0 else -1
+        if shift > 0:
+            sign = 1
+        else:
+            sign = -1
         
         # Ustalenie wymiaru do podziału (wysokość dla R, szerokość dla C)
-        length = h if axis == 1 else w
+        if axis == 1:
+            length = h
+        else:
+            length = w
         
         # Zabezpieczenie N 
         N = min(N, length) 
@@ -156,9 +162,9 @@ class ImageProcessor:
                 
             # Wykonujemy przesunięcie tylko dla konkretnego sektora obrazu
             if axis == 1: # Wiersze przemieszczają się po osi X
-                img[start:end, :] = np.roll(img[start:end, :], shift2, axis=1)
+                img[start:end, :] = np.roll(img[start:end, :], shift2, axis=1) # Wyvina w pioziomie Wiersze
             else:         # Kolumny przemieszczają się po osi Y
-                img[:, start:end] = np.roll(img[:, start:end], shift2, axis=0)
+                img[:, start:end] = np.roll(img[:, start:end], shift2, axis=0) # Wyvina w pionie Kolumny
                 
         return img
 

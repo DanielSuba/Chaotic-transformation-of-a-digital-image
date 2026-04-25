@@ -44,6 +44,13 @@ class ImageScramblerGUI(QMainWindow):
         top_panel = QHBoxLayout()
         top_panel.setSpacing(10)
 
+        label_logo = QLabel()
+        logo_pixmap = QPixmap("logo_UWB.png")
+        if not logo_pixmap.isNull():
+            scaled_logo = logo_pixmap.scaledToHeight(32, Qt.TransformationMode.SmoothTransformation) # Skaluj do wysokości
+            label_logo.setPixmap(scaled_logo)
+        top_panel.addWidget(label_logo)
+
         self.btn_load = QPushButton("Upload image")
         self.btn_load.clicked.connect(self.load_image)
         top_panel.addWidget(self.btn_load)
